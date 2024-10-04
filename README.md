@@ -1,8 +1,10 @@
-# Json Webhook to Microsoft Teams
+# Calico Webhook integration with Microsoft Teams Incoming Webhook
 
 The standard Microsoft Teams Incoming Webhook connector only accepts simple text payloads and doesn't provide much flexibility for JSON. For more complex scenarios, you can build a custom solution using a middleware (e.g., Azure Functions).
 
 This Azure Function handles incoming HTTP POST requests containing JSON security alerts, extracts key fields, and sends formatted alert messages to a Microsoft Teams channel via an incoming webhook.
+
+By deploying Azure Function as a middleware, you will be able to integrate Calico Webhook with Microsoft Teams Incoming Webhook!
 
 ## Features of the script
 
@@ -16,14 +18,16 @@ This Azure Function handles incoming HTTP POST requests containing JSON security
 - .NET 6.0 (or higher)
 - Azure Function Tools
 - Microsoft Teams Incoming Webhook
+- Calico Enterprise or Calico Cloud
 
 ## Usage
 
-1. Set up your Microsoft Teams webhook URL.
-1. Create the Azure Function.
-1. Test the Azure Function locally.
-1. Deploy the Azure Function.
-1. Test the Azure Function in Azure.
+1. [Set up your Microsoft Teams webhook URL.](#Set-up-your-Microsoft-Teams-webhook-URL)
+1. [Create the Azure Function.](#create-the-azure-function)
+1. [Test the Azure Function locally.](#test-the-azure-function-locally)
+1. [Deploy the Azure Function.](#deploy-the-azure-function)
+1. [Test the Azure Function in Azure.](#test-the-azure-function-in-azure)
+1. [Test the Azure Function integration with Calico Cloud Webhook.](#test-the-azure-function-integration-with-calico-cloud-webhook)
 
 ## Set up your Microsoft Teams webhook URL
 
@@ -43,14 +47,21 @@ For more information please visit and review the official documentation [here](h
     1. Select the folder where you want to create the project.
     1. Select the following settings:
         * **Language** : C#
+        * **.NET Runtime** : .NET 6.0 LTS
         * **Template** : HTTP trigger
+        * **Function name** : json-webhook-middleware
+        * **Namespace** : Company.Function
         * **Authorization Level** : Function (so it's secured with a function key)
+        * **Open project** " Open in new window
 
 
 1. **Replace the Template Code with the script below** :
 
-    * Once the project is created, you'll see a generated file for the HTTP trigger. Replace the default code inside the generated function file (e.g., `Function1.cs`) with the script * [Script](#script) below.
+    * Once the project is created, you'll see a generated file for the HTTP trigger. Replace the default code inside the generated function file (e.g., `Function1.cs`) with the [script](#script) below.
+        **IMPORTANT:** Replace `REPLACE_ME_WITH_MS_TEAMS_WEBHOOK_URL` with the actual Microsoft Teams URL you saved in a previous step
     * Ensure that the file is renamed to something appropriate, like `JsonWebhookFunction.cs`.
+    * Ensure the file is saved.
+
 
 1. **Install Dependencies** :
 
@@ -67,32 +78,53 @@ For more information please visit and review the official documentation [here](h
 * Before deploying, test your function locally.
 * In the terminal, run:
 ```
-bash
-Copy code
 func start
 ```
-    * This will start your Azure Function locally. It should output a URL like `http://localhost:7071/api/JsonWebhookFunction`. Use `curl` or a tool like Postman to test your function by sending a POST request with a JSON body.
+    * This will start your Azure Function locally. It should output a URL like `http://localhost:7071/api/JsonWebhookFunction`. 
+    
+* Use `curl` on another shell or a tool like Postman to test your function by sending a POST request with a JSON body. Example:
+    ```
+    curl -X POST http://localhost:7071/api/JsonWebhookFunction --data {}
+    ```
+* You should have received a message in the Microsoft Teams channel where the Incoming Webhook is connected, similar to this:
+![teams-post](img/teams-post.png)
 
 ## Deploy the Azure Function
 1. In the **Command Palette** (`Cmd+Shift+P`), type `Azure Functions: Deploy to Function App`.
 1. If you haven’t created a Function App in Azure yet, the deployment process will ask you to create one:
     * **Subscription** : Choose your Azure subscription.
-    * **Resource Group** : You can create a new one or select an existing one.
-    * **Name** : Provide a unique name for your function app.
-    * **Plan Type** : Choose **Consumption Plan** (pay per execution) for simple use cases.
+    * **Function app** : Create a new function app.
+    * **Name** : Provide a unique name for your function app. Example `json-adaptor`.
+    * **Runtime Stack** : Select .NET 8.0 LTS In-process
     * **Location** : Choose a nearby region.
 1. Once the app is created, VS Code will deploy your function code to Azure.
 
 ## Test the Azure Function in Azure
 
 * After deployment, you can test the live function by sending a POST request to the Azure URL. To find your function's URL:
-    1. Go to the **Azure** tab in VS Code.
-    1. Find your Function App, right-click, and select  **Copy Function URL** .
-    1. Use this URL to send a POST request, similar to your local test.
+1. Go to the **Azure** tab in VS Code.
+1. Find your Function App, right-click, and select  **Copy Function URL** .
+    ![function-url](img/function-url.png)
+1. Use this URL to send a POST request, similar to your local test. Example:
+    ```
+    curl -X POST https://REPLACE_THIS_WITH_YOURS --data {}
+    ```
+    * You should have received a message in the Microsoft Teams channel where the Incoming Webhook is connected, similar to this:
+    ![teams-post](img/teams-post.png)
+
+## Test the Azure Function integration with Calico Cloud Webhook
+
+1. Go to **Calico Cloud/Enterprise UI** > **Activity** > **Webhooks** and create a new webhook with the **Function URL** that you got before.
+![calico-webhook](img/calico-webhook.gif)
+1. **WAF TEST** : You can follow [these steps](https://docs.tigera.io/calico-enterprise/latest/threat/web-application-firewall#enable-waf) to test WAF with a sample application.
+1. After a few seconds from sending the SQL Injection command, you should receive a post in Microsoft Teams, similar to this:
+![teams-sql](img/teams-sql.png)
+
+> **Congratulations! You have tested and implemented Calico Webhook integration with Microsoft Teams Incoming Webhook.**
 
 ## Script
 
-**NOTE:** Replace `REPLACE_ME_WITH_MS_TEAMS_WEBHOOK_URL` with the actual Microsoft Teams URL you saved in a previous step
+**NOTE:** Replace `REPLACE_ME_WITH_MS_TEAMS_WEBHOOK_URL` with the actual Microsoft Teams URL you saved in a previous step.
 
 ```
 using System.IO;
