@@ -1,61 +1,14 @@
 # Json Webhook to Microsoft Teams
 
+The standard Microsoft Teams Incoming Webhook connector only accepts simple text payloads and doesn't provide much flexibility for JSON. For more complex scenarios, you can build a custom solution using a middleware (e.g., Azure Functions).
+
 This Azure Function handles incoming HTTP POST requests containing JSON security alerts, extracts key fields, and sends formatted alert messages to a Microsoft Teams channel via an incoming webhook.
 
-## Features
+## Features of the script
 
 - Extracts key information from the JSON payload (timestamp, IP addresses, rules violated).
 - Formats the data in Markdown for easy reading in Microsoft Teams.
 - Posts the message using a Microsoft Teams webhook URL.
-
-## Step-by-Step Breakdown:
-
-1. **Import Statements:**
-
-    * The script imports several namespaces necessary for handling HTTP requests, JSON manipulation, and logging:
-
-        * `System.IO`, `System.Net.Http`, `System.Text`, etc., provide access to file reading, HTTP communication, and string encoding.
-        * `Microsoft.AspNetCore.Mvc`, `Microsoft.Azure.WebJobs`, `Microsoft.Extensions.Logging` support Azure Function definitions and logging.
-        * `Newtonsoft.Json` is used for JSON serialization and deserialization.
-
-1. **Function Declaration:**
-
-   * The static class `JsonWebhookFunction` is defined, containing the Azure function logic.
-   * The method `Run` is decorated with the `[FunctionName("JsonWebhookFunction")]` attribute, which names the function.
-
-1. **HTTP Trigger Setup:**
-
-   * The function uses an HTTP trigger (`HttpTrigger`) with a `POST` method and `Function` authorization level. This means the function listens for incoming HTTP POST requests.
-
-1. **Logging Incoming Payload:**
-   * The `ILogger log` object is used to log a message indicating that an incoming JSON payload has been received.
-1. **Read and Deserialize JSON Payload:**
-   * The incoming JSON body is read from the HTTP request using a `StreamReader` and stored in the `requestBody`.
-   * The `requestBody` is deserialized into a dynamic object (`data`) using `JsonConvert.DeserializeObject`, allowing flexible access to the JSON properties.
-1. **Extract Key Fields from JSON:**
-   * Several key fields are extracted from the `data` object:
-     * **Timestamp:** Extracts the timestamp and formats it as a `DateTime` string.
-     * **Request ID, Message, Source/Destination IPs and Ports, Path:** These fields are extracted and default to `"N/A"` if missing from the JSON.
-     * **Rules List:** Extracts the list of rules violated (if present), and converts it into a list of dynamic objects.
-1. **Handle Rules List:**
-   * If any rules are found in the JSON payload, each rule's `id`, `message`, and `severity` are formatted into a string. If no rules are present, the output defaults to `"No rules violated."`.
-1. **Format Message for Microsoft Teams:**
-   * A message is constructed in Markdown format to be sent to Microsoft Teams. The message contains:
-     * A security alert with the extracted details (e.g., timestamp, request ID, source/destination IP and ports).
-     * The list of violated rules (if any).
-     * The full JSON payload is embedded as a code block.
-1. **Send Message to Microsoft Teams Webhook:**
-   * The script sends the formatted message to a pre-configured Microsoft Teams incoming webhook URL (`teamsWebhookUrl`).
-   * A `HttpClient` instance is used to make a `POST` request with the formatted message as a JSON payload.
-1. **Handle Response:**
-    * If the `POST` request to Teams is successful (i.e., the webhook URL responds with a success status code), the function returns an `OkObjectResult` with a success message.
-    * If the request fails, a `BadRequestObjectResult` is returned with the error status code.
-
-## Usage
-
-1. Set up your Microsoft Teams webhook URL.
-1. Create and Deploy the Azure Function.
-1. Trigger the function by sending a JSON payload using an HTTP POST request.
 
 ## Requirements
 
@@ -64,7 +17,25 @@ This Azure Function handles incoming HTTP POST requests containing JSON security
 - Azure Function Tools
 - Microsoft Teams Incoming Webhook
 
-## Steps to Create and Deploy the Azure Function
+## Usage
+
+1. Set up your Microsoft Teams webhook URL.
+1. Create the Azure Function.
+1. Test the Azure Function locally.
+1. Deploy the Azure Function.
+1. Test the Azure Function in Azure.
+
+## Set up your Microsoft Teams webhook URL
+
+1. Go to Microsoft Teams.
+1. Navigate to the channel where you want to post the messages.
+1. Click on the three dots (more options) next to the channel name and select Connectors.
+1. Search for Incoming Webhook, add it, and configure the webhook name and icon.
+1. Once done, copy the Webhook URL — you'll need this to send messages to Teams.
+
+For more information please visit and review the official documentation [here](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook?tabs=newteams%2Cdotnet).
+
+## Create the Azure Function
 
 1. **Create a Local Azure Function Project** :
     1. Open  **Visual Studio Code** .
@@ -76,50 +47,48 @@ This Azure Function handles incoming HTTP POST requests containing JSON security
         * **Authorization Level** : Function (so it's secured with a function key)
 
 
-1. **Replace the Template Code with Your Code** :
+1. **Replace the Template Code with the script below** :
 
-    * Once the project is created, you'll see a generated file for the HTTP trigger. Replace the default code inside the generated function file (e.g., `Function1.cs`) with your code from above (`JsonWebhookFunction.cs`).
+    * Once the project is created, you'll see a generated file for the HTTP trigger. Replace the default code inside the generated function file (e.g., `Function1.cs`) with the script * [Script](#script) below.
     * Ensure that the file is renamed to something appropriate, like `JsonWebhookFunction.cs`.
 
 1. **Install Dependencies** :
 
-    * Your function uses **Newtonsoft.Json** for JSON serialization/deserialization, so you'll need to install this package:
+    * The function uses **Newtonsoft.Json** for JSON serialization/deserialization, so you'll need to install this package:
         1. Open a terminal in VS Code (`Ctrl+` `or View > Terminal`).
         1. Run the following command to install  **Newtonsoft.Json** :
-            ```dotnet add package Newtonsoft.Json```
+            ```
+            dotnet add package Newtonsoft.Json
+            ```
             *  This will update your `.csproj` file with the necessary dependency.
 
-1. **Test Locally** :
+## Test the Azure Function locally
 
-    * Before deploying, test your function locally.
-    * In the terminal, run:
-    <pre class="!overflow-visible"><div class="dark bg-gray-950 contain-inline-size rounded-md border-[0.5px] border-token-border-medium relative"><div class="flex items-center text-token-text-secondary bg-token-main-surface-secondary px-4 py-2 text-xs font-sans justify-between rounded-t-md h-9">bash</div><div class="sticky top-9 md:top-[5.75rem]"><div class="absolute bottom-0 right-2 flex h-9 items-center"><div class="flex items-center rounded bg-token-main-surface-secondary px-2 font-sans text-xs text-token-text-secondary"><span class="" data-state="closed"><button class="flex gap-1 items-center py-1"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-sm"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>Copy code</button></span></div></div></div><div class="overflow-y-auto p-4" dir="ltr"><code class="!whitespace-pre hljs language-bash">func start
-    </code></div></div></pre>
+* Before deploying, test your function locally.
+* In the terminal, run:
+```
+bash
+Copy code
+func start
+```
     * This will start your Azure Function locally. It should output a URL like `http://localhost:7071/api/JsonWebhookFunction`. Use `curl` or a tool like Postman to test your function by sending a POST request with a JSON body.
 
-1. **Deploy to Azure** :
-    1. In the **Command Palette** (`Cmd+Shift+P`), type `Azure Functions: Deploy to Function App`.
-    1. If you haven’t created a Function App in Azure yet, the deployment process will ask you to create one:
-        * **Subscription** : Choose your Azure subscription.
-        * **Resource Group** : You can create a new one or select an existing one.
-        * **Name** : Provide a unique name for your function app.
-        * **Plan Type** : Choose **Consumption Plan** (pay per execution) for simple use cases.
-        * **Location** : Choose a nearby region.
-    1. Once the app is created, VS Code will deploy your function code to Azure.
-1. **Configure the Microsoft Teams Webhook URL** :
+## Deploy the Azure Function
+1. In the **Command Palette** (`Cmd+Shift+P`), type `Azure Functions: Deploy to Function App`.
+1. If you haven’t created a Function App in Azure yet, the deployment process will ask you to create one:
+    * **Subscription** : Choose your Azure subscription.
+    * **Resource Group** : You can create a new one or select an existing one.
+    * **Name** : Provide a unique name for your function app.
+    * **Plan Type** : Choose **Consumption Plan** (pay per execution) for simple use cases.
+    * **Location** : Choose a nearby region.
+1. Once the app is created, VS Code will deploy your function code to Azure.
 
-    * Before deploying, replace the placeholder Microsoft Teams webhook URL in the code (`teamsWebhookUrl`) with the actual one. You can find or generate the webhook URL from your Microsoft Teams channel by following these steps:
-        1. Go to the desired **Teams** channel.
-        1. Click on the **ellipsis (⋯)** next to the channel name.
-        1. Choose  **Connectors** .
-        1. Search for and configure  **Incoming Webhook** , then generate a URL.
+## Test the Azure Function in Azure
 
-1. **Monitor and Test on Azure** :
-
-    * After deployment, you can test the live function by sending a POST request to the Azure URL. To find your function's URL:
-        1. Go to the **Azure** tab in VS Code.
-        1. Find your Function App, right-click, and select  **Copy Function URL** .
-        1. Use this URL to send a POST request, similar to your local test.
+* After deployment, you can test the live function by sending a POST request to the Azure URL. To find your function's URL:
+    1. Go to the **Azure** tab in VS Code.
+    1. Find your Function App, right-click, and select  **Copy Function URL** .
+    1. Use this URL to send a POST request, similar to your local test.
 
 ## Script
 
@@ -205,3 +174,47 @@ public static class JsonWebhookFunction
 }
 
 ```
+
+## Script Step-by-Step Breakdown:
+
+1. **Import Statements:**
+
+    * The script imports several namespaces necessary for handling HTTP requests, JSON manipulation, and logging:
+
+        * `System.IO`, `System.Net.Http`, `System.Text`, etc., provide access to file reading, HTTP communication, and string encoding.
+        * `Microsoft.AspNetCore.Mvc`, `Microsoft.Azure.WebJobs`, `Microsoft.Extensions.Logging` support Azure Function definitions and logging.
+        * `Newtonsoft.Json` is used for JSON serialization and deserialization.
+
+1. **Function Declaration:**
+
+   * The static class `JsonWebhookFunction` is defined, containing the Azure function logic.
+   * The method `Run` is decorated with the `[FunctionName("JsonWebhookFunction")]` attribute, which names the function.
+
+1. **HTTP Trigger Setup:**
+
+   * The function uses an HTTP trigger (`HttpTrigger`) with a `POST` method and `Function` authorization level. This means the function listens for incoming HTTP POST requests.
+
+1. **Logging Incoming Payload:**
+   * The `ILogger log` object is used to log a message indicating that an incoming JSON payload has been received.
+1. **Read and Deserialize JSON Payload:**
+   * The incoming JSON body is read from the HTTP request using a `StreamReader` and stored in the `requestBody`.
+   * The `requestBody` is deserialized into a dynamic object (`data`) using `JsonConvert.DeserializeObject`, allowing flexible access to the JSON properties.
+1. **Extract Key Fields from JSON:**
+   * Several key fields are extracted from the `data` object:
+     * **Timestamp:** Extracts the timestamp and formats it as a `DateTime` string.
+     * **Request ID, Message, Source/Destination IPs and Ports, Path:** These fields are extracted and default to `"N/A"` if missing from the JSON.
+     * **Rules List:** Extracts the list of rules violated (if present), and converts it into a list of dynamic objects.
+1. **Handle Rules List:**
+   * If any rules are found in the JSON payload, each rule's `id`, `message`, and `severity` are formatted into a string. If no rules are present, the output defaults to `"No rules violated."`.
+1. **Format Message for Microsoft Teams:**
+   * A message is constructed in Markdown format to be sent to Microsoft Teams. The message contains:
+     * A security alert with the extracted details (e.g., timestamp, request ID, source/destination IP and ports).
+     * The list of violated rules (if any).
+     * The full JSON payload is embedded as a code block.
+1. **Send Message to Microsoft Teams Webhook:**
+   * The script sends the formatted message to a pre-configured Microsoft Teams incoming webhook URL (`teamsWebhookUrl`).
+   * A `HttpClient` instance is used to make a `POST` request with the formatted message as a JSON payload.
+1. **Handle Response:**
+    * If the `POST` request to Teams is successful (i.e., the webhook URL responds with a success status code), the function returns an `OkObjectResult` with a success message.
+    * If the request fails, a `BadRequestObjectResult` is returned with the error status code.
+
